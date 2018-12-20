@@ -1,0 +1,82 @@
+---
+title: "Biopics Final Graph"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+# library(ggmosaic)
+```
+
+```{r, warning = F, message=F}
+biopics <- read_csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/biopics/biopics.csv")
+```
+
+```{r, warning=F, message=F}
+
+checkV <- function(x){
+  substr(x, nchar(x), nchar(x))
+}
+
+convNum <- function(x, v) {
+  ifelse(v, 
+         return(as.numeric(substr(x, 2, (nchar(x)-1)))),
+         return(as.numeric(substr(x, 2, (nchar(x)-1)))/1000))
+}
+
+biopics <- biopics %>% 
+  mutate(
+    box_office = ifelse((biopics$box_office == "-"), NA, biopics$box_office),
+    box_office = as.numeric(ifelse(!is.na(biopics$box_office),
+                        (ifelse((checkV(biopics$box_office) == "M"),
+                                convNum(biopics$box_office, TRUE),
+                                convNum(biopics$box_office, FALSE))),
+                        biopics$box_office))
+  )
+
+race_sex_mosaic <-
+  ggplot(biopics, aes(x = subject_race, y = type_of_subject)) +
+    geom_mosaic() + 
+    mosaic_legend() +
+    labs(x = "Subject Race",
+         y = "Type of Subject") + 
+    theme(axis.text.x = element_text(angle = 90))
+
+race_sex_mosaic
+
+```
+
+```{r, warning=F, message=F}
+library(wordcloud)
+library(tm)
+
+docs <- Corpus(VectorSource(biopics$title))
+
+# Convert the text to lower case
+docs <- tm_map(docs, content_transformer(tolower))
+# Remove numbers
+docs <- tm_map(docs, removeNumbers)
+# Remove english common stopwords
+docs <- tm_map(docs, removeWords, stopwords("english"))
+# Remove your own stop word
+# specify your stopwords as a character vector
+docs <- tm_map(docs, removeWords, c("blabla1", "blabla2")) 
+# Remove punctuations
+docs <- tm_map(docs, removePunctuation)
+# Eliminate extra white spaces
+docs <- tm_map(docs, stripWhitespace)
+
+dtm <- TermDocumentMatrix(docs)
+m <- as.matrix(dtm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+
+set.seed(1234)
+wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+

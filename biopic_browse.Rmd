@@ -1,0 +1,68 @@
+---
+title: "Biopic Browse"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+```
+
+## R Markdown
+
+```{r, warning = F, message=F}
+biopics <- read_csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/biopics/biopics.csv")
+```
+
+## Including Plots
+
+```{r, warning=F, message=F}
+## plot about the country distribution
+country_distribution <- 
+  ggplot(biopics, aes(x = country)) + 
+    geom_bar()
+
+country_distribution
+```
+
+
+```{r, warning=F, message=F}
+
+checkV <- function(x){
+  substr(x, nchar(x), nchar(x))
+}
+
+convNum <- function(x, v) {
+  ifelse(v, 
+         return(as.numeric(substr(x, 2, (nchar(x)-1)))),
+         return(as.numeric(substr(x, 2, (nchar(x)-1)))/1000))
+}
+
+biopics <- biopics %>% 
+  mutate(
+    box_office = ifelse((biopics$box_office == "-"), NA, biopics$box_office),
+    box_office = as.numeric(ifelse(!is.na(biopics$box_office),
+                        (ifelse((checkV(biopics$box_office) == "M"),
+                                convNum(biopics$box_office, TRUE),
+                                convNum(biopics$box_office, FALSE))),
+                        biopics$box_office))
+  )
+
+box_race_set <- subset(biopics, !is.na(box_office))
+box_race_distribution <-
+  ggplot(box_race_set, aes(x = year_release, y = box_office, color = subject_sex)) +
+    geom_point() 
+
+box_race_distribution
+
+```
+
+```{r}
+box_country_distribution <- 
+  ggplot(box_race_set, aes(x = country, y = box_office, color = subject_race)) + 
+    geom_bar(stat="identity")
+```
+
+
+
